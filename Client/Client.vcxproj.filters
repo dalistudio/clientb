@@ -48,6 +48,9 @@
     <ClInclude Include="strtoken.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="uni2utf8.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp">
@@ -63,6 +66,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="strtoken.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="uni2utf8.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

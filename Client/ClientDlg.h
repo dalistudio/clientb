@@ -35,7 +35,9 @@ public:
 		char com1_para[64]; // 串口1的参数
 		short com2_id; // 串口2的编号
 		char com2_para[64]; // 串口2的参数
-		char cookie[256]; 
+		char cookie[256]; // Cookie
+		char sid[256]; // 会话ID 
+		char aid[256]; // 身份ID
 	};
 	CONF conf;
 	int len;

@@ -30,7 +30,7 @@ using namespace std;
 class _base_com	  //虚基类 基本串口接口
 {
 protected:
-
+	
 	volatile int _port;	 //串口号
 	volatile HANDLE _com_handle;//串口句柄
 	DCB _dcb;			  //波特率，停止位，等
@@ -84,8 +84,9 @@ public:
 			char com_str[10];
 			strcpy(com_str, "COM");
 			ltoa(_port, com_str + 3, 10);
-
-			if(CommConfigDialog(com_str, NULL, &cf))
+			
+			USES_CONVERSION;  // dali
+			if(CommConfigDialog(A2CW(com_str), NULL, &cf))
 			{
 				 memcpy(&_dcb, &cf.dcb, sizeof(DCB));
 				 return SetCommState(_com_handle, &_dcb);
@@ -96,7 +97,8 @@ public:
 	//支持设置字符串 "9600, 8, n, 1"
 	bool set_dcb(char *set_str)	
 	{
-		return bool(BuildCommDCB(set_str, &_dcb));
+		USES_CONVERSION;  // dali
+		return bool(BuildCommDCB(A2CW(set_str), &_dcb));
 	}
 	//设置内置结构串口参数：波特率，停止位
 	bool set_dcb(int BaudRate, int ByteSize = 8, int Parity = NOPARITY, int StopBits = ONESTOPBIT)
@@ -134,14 +136,14 @@ public:
 
 		return open_port();
 	}
-	//打开串口 例如：baud=9600 parity=N data=8 stop=1
-	//COMx[:][baud=b][parity=p][data=d][stop=s][to={on|off}][xon={on|off}][odsr={on|off}][octs={on|off}][dtr={on|off|hs}][rts={on|off|hs|tg}][idsr={on|off}]
+	//打开串口
 	inline bool open(int port, char *set_str)
 	{
 		if(port < 1 || port > 1024)
 			return false;
 
-		if(!BuildCommDCB(set_str, &_dcb))
+		USES_CONVERSION;  // dali
+		if(!BuildCommDCB(A2CW(set_str), &_dcb))
 			return false;
 
 		_port = port;
@@ -182,8 +184,9 @@ protected:
 		
 		strcpy(com_str, "COM");
 		ltoa(_port, com_str + 3, 10);
+		USES_CONVERSION;  // dali
 		_com_handle = CreateFile(
-			com_str,
+			A2CW(com_str),
 			GENERIC_READ | GENERIC_WRITE,
 			0,
 			NULL,
@@ -295,8 +298,9 @@ protected:
 
 		strcpy(com_str, "COM");
 		ltoa(_port, com_str + 3, 10);
+		USES_CONVERSION;  // dali
 		_com_handle = CreateFile(
-			com_str,
+			A2CW(com_str),
 			GENERIC_READ | GENERIC_WRITE,
 			0,
 			NULL,
