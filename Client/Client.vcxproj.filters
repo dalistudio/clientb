@@ -45,6 +45,9 @@
     <ClInclude Include="MySock.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="strtoken.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp">
@@ -57,6 +60,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="MySock.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="strtoken.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

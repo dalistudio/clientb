@@ -134,7 +134,8 @@ public:
 
 		return open_port();
 	}
-	//打开串口
+	//打开串口 例如：baud=9600 parity=N data=8 stop=1
+	//COMx[:][baud=b][parity=p][data=d][stop=s][to={on|off}][xon={on|off}][odsr={on|off}][octs={on|off}][dtr={on|off|hs}][rts={on|off|hs|tg}][idsr={on|off}]
 	inline bool open(int port, char *set_str)
 	{
 		if(port < 1 || port > 1024)
