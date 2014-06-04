@@ -100,4 +100,5 @@ public:
 	void OnKeepalive(); // 保持连接
 	void OnLogin(); // 用户登录
 	void OnPost(); // 提交单据
+	void OnFangXing(); // 放行处理
 };

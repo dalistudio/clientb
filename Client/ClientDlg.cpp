@@ -162,9 +162,9 @@ BOOL CClientDlg::OnInitDialog()
 	conf.port = 80;
 	conf.com1_id=1;
 	strcpy(conf.com1_para,"baud=9600 parity=N data=8 stop=1");
-	conf.com2_id=2;
-	strcpy(conf.com2_para,"baud=9600 parity=N data=8 stop=1");
-	strcpy(conf.cookie,"");
+//	conf.com2_id=2;
+//	strcpy(conf.com2_para,"baud=9600 parity=N data=8 stop=1");
+//	strcpy(conf.cookie,"");
 
 	// 打开配置文件 JSON 格式
 	FILE *f=fopen("config","rb"); // 配置文件 config
@@ -191,9 +191,9 @@ BOOL CClientDlg::OnInitDialog()
 		conf.com1_id = cJSON_GetObjectItem(jsonCOM1,"port")->valueint; // 获得COM端口
 		strcpy(conf.com1_para,cJSON_GetObjectItem(jsonCOM1,"para")->valuestring); // 获得COM的属性
 
-		cJSON *jsonCOM2=cJSON_GetObjectItem(jsonroot,"com1");//取 COM1
-		conf.com2_id = cJSON_GetObjectItem(jsonCOM2,"port")->valueint; // 获得COM端口
-		strcpy(conf.com2_para,cJSON_GetObjectItem(jsonCOM2,"para")->valuestring); // 获得COM的属性
+//		cJSON *jsonCOM2=cJSON_GetObjectItem(jsonroot,"com1");//取 COM1
+//		conf.com2_id = cJSON_GetObjectItem(jsonCOM2,"port")->valueint; // 获得COM端口
+//		strcpy(conf.com2_para,cJSON_GetObjectItem(jsonCOM2,"para")->valuestring); // 获得COM的属性
 	}
 	
 
@@ -226,6 +226,9 @@ BOOL CClientDlg::OnInitDialog()
 		FF_SWISS,				// 字符间距和字体族
 		_T("隶书"));				// 字体名称
 
+	// 公司LOGO
+	GetDlgItem(IDC_STATIC_LOGO)->SetFont(m_Font);
+
 	// 标题
 	USES_CONVERSION;  // dali
 	GetDlgItem(IDC_EDIT_TITLE)->SetWindowText(A2CW(conf.title));
@@ -235,6 +238,7 @@ BOOL CClientDlg::OnInitDialog()
 	// 单号
 	GetDlgItem(IDC_STATIC_DANHAO)->SetFont(m_Font);
 	GetDlgItem(IDC_EDIT_DANHAO)->SetFont(m_Font);
+	m_id.EnableWindow(FALSE); // 禁用“单号”文本框
 	
 	// 车号
 	GetDlgItem(IDC_STATIC_CHEHAO)->SetFont(m_Font);
@@ -357,21 +361,39 @@ HCURSOR CClientDlg::OnQueryDragIcon()
 // 接收串口的消息，并处理
 LRESULT CClientDlg::On_Receive(WPARAM wp, LPARAM lp)
 {
-	
+	// 门岗客户端，一般情况不需要处理闸口发过来的信息
+	// 格式：地址(1字节) + 命令(1字节) + 长度(1字节) + 数据(n字节) + 校验(1字节)
+	//       地址：00h 广播地址		01h - 0Fh 设备地址
+	//       命令：
+	//            00h 查询状态(不可广播) 03000003 返回 03000003(未知)  0309000A(开)    030C000F(关)
+	//            01h 停止 05010004 返回 05010004
+	//            03h 开闸 05030006 返回 05030006 广播 00030003 无返回
+	//            05h 关闸 0905000C 返回 0905000C 广播 00050005 无返回
+	//            09h 查计数 0A090003 返回 0A0902030406 其中 0304为计数
+	//            0Fh 清计数 0F0F0000 返回 0F0F0000
+	//
+	//       长度：默认长度为0，仅查计数的返回值有长度为2
+	//       数据：默认不存在，仅查计数的返回值有2字节的数据。
+	//       校验：将前面的所有字节进行异或运算(XOR)。
+	//
+
+	// 无需处理接受到的串口数据
+
+/*
 	int len;
 	char str[100];
 
-	if(wp==3)
+//	if(wp==3)
 	{
 		len = com1.read(str, 100);
 		printf("COM1: %s\n",str);
 	}
 
-	if(wp==9)
-	{
-		len = com2.read(str, 100);
-		printf("COM2: %s\n",str);
-	}
+//	if(wp==9)
+//	{
+//		len = com2.read(str, 100);
+//		printf("COM2: %s\n",str);
+//	}
 	if(len > 0)
 	{
 		char com_str[10];
@@ -383,7 +405,7 @@ LRESULT CClientDlg::On_Receive(WPARAM wp, LPARAM lp)
 		m_e += "\r\n";
 		GetDlgItem(IDC_EDIT_INFO)->SetWindowText(m_e);
 	}
-	
+*/
 	return 0;
 }
 
@@ -410,7 +432,6 @@ void CClientDlg::OnConnected()
 	printf("连接服务器成功\n");
 	m_btn_net.SetWindowText(_T("连接成功"));
 	m_btn_net.EnableWindow(FALSE);
-	//MessageBox("连接成功");
 }
 
 // 接收网络数据
@@ -438,7 +459,8 @@ void CClientDlg::OnRvc()
 		case 3:
 			OnPost(); // 获得单据信息
 			break;
-		case 4: // 提交放行状态
+		case 4: 
+			OnFangXing(); // 提交放行状态
 			break;
 		}
 	}
@@ -452,7 +474,7 @@ void CClientDlg::OnClose()
 	m_btn_net.SetWindowText(_T("重新连接(&R)..."));
 	m_btn_net.EnableWindow(TRUE); // 连接按钮
 	m_Conn.Close();
-	//MessageBox("连接已关闭！\n请重新连接服务器。","网络连接");
+
 	// 自动重新连接
 	Sleep(3000); // 休息 3秒重连
 	OnBnClickedButtonNetConn();
@@ -463,7 +485,7 @@ void CClientDlg::GetData(char *url, char *para)
 	char Data[1024] = {0};
 	strcat(Data,"GET ");
 	strcat(Data,url);
-	strcat(Data,"?");
+	strcat(Data,"?"); // 注意这里，应该先判断para是否为空
 	strcat(Data,para);
 	strcat(Data," HTTP/1.1\r\n");
 	strcat(Data,"Host: ");
@@ -523,11 +545,6 @@ BOOL CClientDlg::PreTranslateMessage(MSG* pMsg)
 		switch(pMsg->wParam)
 		{
 		case VK_RETURN: // 回车按键
-			//MessageBox("回车");
-			//if(GetFocus()->GetDlgCtrlID() != IDOK)
-			//{
-			//	pMsg->wParam = VK_TAB;
-			//}
 			CWnd *wnd =GetFocus();
 			if(wnd != NULL)
 			{
@@ -543,7 +560,7 @@ BOOL CClientDlg::PreTranslateMessage(MSG* pMsg)
 				{
 					SendMessage(WM_COMMAND,IDC_BUTTON_TIJIAO,(LPARAM)wnd->m_hWnd); // 发送按钮消息
 				}
-				if(i == IDC_BUTTON_FANGXING)
+				if(i == IDC_BUTTON_FANGXING) // 放行按钮消息
 				{
 					return TRUE;
 				}
@@ -596,26 +613,30 @@ void CClientDlg::OnBnClickedButtonLogin()
 	char Data[256] ={0};
 	strcat(Data,"User=");
 	CString strUser =_T("");
-	m_user.GetWindowText(strUser);
-	strcat(Data,W2A(strUser));
+	m_user.GetWindowText(strUser); // 获得用户名
+	strcat(Data,W2A(strUser)); // 设置用户名
 	strcat(Data,"&Passwd=");
 	CString strPwd = _T("");
-	m_pwd.GetWindowText(strPwd);
-	strcat(Data,W2A(strPwd));
-	strcat(Data,"&Level=1"); // 这里Level=2
-	GetData("/login.php",(char*)&Data);
+	m_pwd.GetWindowText(strPwd); // 获得密码
+	strcat(Data,W2A(strPwd)); // 设置密码
+	strcat(Data,"&Level=2"); // 这里Level=2
+	GetData("/login.php",(char*)&Data); // 发送 GET 请求
 }
 
 // 登出
 void CClientDlg::OnBnClickedButtonLogout()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	m_user.SetWindowText(_T(""));
-	m_user.EnableWindow(TRUE);
-	m_pwd.SetWindowText(_T(""));
-	m_pwd.EnableWindow(TRUE);
-	m_btn_login.EnableWindow(TRUE);
-	memset(&(conf.cookie),0,256);
+	m_user.SetWindowText(_T("")); // 清空用户名框
+	m_user.EnableWindow(TRUE); // 启用用户名框
+	m_pwd.SetWindowText(_T("")); // 清空密码框
+	m_pwd.EnableWindow(TRUE); // 启用密码框
+	m_btn_login.EnableWindow(TRUE); // 启用登录按钮
+	m_id.EnableWindow(FALSE); // 禁用“单号”文本框
+
+	memset(&(conf.cookie),0,256); // 清空Cookie
+	memset(&(conf.sid),0,256); // 清空SID
+	memset(&(conf.aid),0,256); // 清空AID
 }
 
 // 定时器
@@ -626,7 +647,7 @@ void CClientDlg::OnTimer(UINT_PTR nIDEvent)
 	{
 	case 1:
 		m_post_id = 1; // 提交ID为1
-		GetData("/keepalive.php","");
+		GetData("/keepalive.php",""); // 发送 GET 请求，保持连接
 		return;
 	}
 
@@ -637,18 +658,23 @@ void CClientDlg::OnTimer(UINT_PTR nIDEvent)
 void CClientDlg::OnBnClickedButtonTijiao()
 {
 	// TODO: 在此添加控件通知处理程序代码
+	SYSTEMTIME st;
+	GetLocalTime(&st);
+	char str[32]={0};
+	sprintf(str,"date=%4d%02d%02d&id=",st.wYear,st.wMonth,st.wDay); // 当前日期
+
 	CString strId;
 	m_id.GetWindowText(strId);
-	if(strId=="")
+	int i = _ttoi(strId);  
+	if(strId=="" || i==0)
 	{
-		MessageBox(_T("单号不能为空！！"));
+		MessageBox(_T("单号不能为空！！\n 或者全为：0"));
+		m_fangxing.EnableWindow(FALSE); // 放行按钮
 		return;
 	}
 	m_post_id = 3; // 提交ID为3
 	USES_CONVERSION; // dali
-	char str[32]={0};
-	strcat(str,"id=");
-	strcat(str,W2A(strId));
+	strcat(str,W2A(strId)); // 设置单号
 	GetData("/getid.php",str); // 提交放行请求
 
 	// 判断状态和上次放行时间决定是否可放行
@@ -661,35 +687,9 @@ void CClientDlg::OnBnClickedButtonFangxing()
 	// TODO: 在此添加控件通知处理程序代码
 
 	// 提交一个POST放行
+	// 需要提交门岗放行的状态，只需ID和保安用户名即可。
 	m_post_id = 4; // 提交ID为4
 	PostData("/post.php",""); // 提交id level status更新数据库即可
-	char buf[64]={0};
-	buf[0] = 0xAA;
-	buf[1] = 0xAA;
-	buf[2] = 0x01;
-	buf[3] = 0xBB;
-	buf[4] = 0xCC;
-	buf[5] = 0xDD;
-	int len = strlen(buf);
-	com1.write((char*)&buf,len); // 发送开门信号到串口1
-
-	// 清空文本框的数据，并将焦点设置在单号处。
-	m_id.SetWindowText(_T("")); // 单号
-	m_chehao.SetWindowText(_T("")); // 车号
-	m_dianhua.SetWindowText(_T("")); // 电话
-	m_shouhuo.SetWindowText(_T("")); // 收货单位
-	m_huowu.SetWindowText(_T("")); // 货物名称
-	m_guige.SetWindowText(_T("")); // 货物规格
-	m_liuxiang.SetWindowText(_T("")); // 货物流向
-	m_chexing.SetWindowText(_T("")); // 车型
-	m_pizhong.SetWindowText(_T("")); // 皮重
-	m_maozhong.SetWindowText(_T("")); // 毛重
-	m_jingzhong.SetWindowText(_T("")); // 净重
-	m_danjia.SetWindowText(_T("")); // 单价
-	m_jine.SetWindowText(_T("")); // 金额
-	// 设置单号为焦点
-	m_id.SetFocus();
-	m_fangxing.EnableWindow(FALSE); // 禁用放行按钮
 }
 
 
@@ -714,10 +714,9 @@ void CClientDlg::OnBnClickedButtonComConn()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	// 初始化串口
-	if(!com1.open(conf.com1_id,conf.com1_para))
+	if(!com1.open(conf.com1_id,conf.com1_para)) // 打开串口1
 	{
 		m_com1.SetWindowText(_T("打开失败"));
-//		MessageBox("串口1打开失败", "串口", MB_OK);
 	}
 	else
 	{
@@ -725,28 +724,28 @@ void CClientDlg::OnBnClickedButtonComConn()
 		char tmp[64] = {0};
 		sprintf(tmp,"COM%d:%s",conf.com1_id,conf.com1_para);
 		USES_CONVERSION;  // dali
-		m_com1.SetWindowText(A2CW(tmp));
+		m_com1.SetWindowText(A2CW(tmp)); // 设置串口1框的值
 	}
 
-	if(!com2.open(conf.com2_id,conf.com2_para))
-	{
-		m_com2.SetWindowText(_T("打开失败"));
-//		MessageBox("串口2打开失败", "串口", MB_OK);
-	}
-	else
-	{
-		com2.set_hwnd(m_hWnd);
-		char tmp[64] = {0};
-		sprintf(tmp,"COM%d,%s",conf.com2_id,conf.com2_para);
-		USES_CONVERSION;  // dali
-		m_com2.SetWindowText(A2CW(tmp));
-	}
+//	if(!com2.open(conf.com2_id,conf.com2_para)) // 打开串口2
+//	{
+//		m_com2.SetWindowText(_T("打开失败"));
+//	}
+//	else
+//	{
+//		com2.set_hwnd(m_hWnd);
+//		char tmp[64] = {0};
+//		sprintf(tmp,"COM%d,%s",conf.com2_id,conf.com2_para);
+//		USES_CONVERSION;  // dali
+//		m_com2.SetWindowText(A2CW(tmp)); // 设置串口2框的值
+//	}
 }
 
 // 保持连接
 void CClientDlg::OnKeepalive()
 {
 	// 无需处理返回的数据。
+	// 可以在这里判断连接是否正常
 }
 
 // 用户登录
@@ -782,18 +781,23 @@ void CClientDlg::OnLogin()
 				{
 					strcpy(conf.aid,cStr); // 设置AID的值
 				}
-
-				if(strcmp(conf.sid,"") > 0 && strcmp(conf.aid,"")>0)
-				{
-					strcpy(conf.cookie,conf.sid); // 设置Cookie的值
-					strcat(conf.cookie,";");
-					strcat(conf.cookie,conf.aid);
-					m_user.EnableWindow(FALSE); // 禁用用户输入框
-					m_pwd.EnableWindow(FALSE);  // 禁用密码输入框 
-					m_btn_login.EnableWindow(FALSE); // 禁用登录按钮
-				}
-				
 			}
+		} // while
+
+		if(strcmp(conf.sid,"") > 0 && strcmp(conf.aid,"")>0)
+		{
+			strcpy(conf.cookie,conf.sid); // 设置Cookie的值
+			strcat(conf.cookie,";");
+			strcat(conf.cookie,conf.aid);
+			m_user.EnableWindow(FALSE); // 禁用用户输入框
+			m_pwd.EnableWindow(FALSE);  // 禁用密码输入框 
+			m_btn_login.EnableWindow(FALSE); // 禁用登录按钮
+			m_id.EnableWindow(TRUE); // 启用“单号”文本框
+			m_id.SetFocus(); // 设置“单号”文本框为焦点
+		}
+		else
+		{
+			MessageBox(_T("用户名 或 密码 错误！"),_T("登录失败"));
 		}
 	}
 }
@@ -821,20 +825,32 @@ void CClientDlg::OnPost()
 				break;
 			}
 		}
-		USES_CONVERSION;  // dali
-		cJSON *jsonroot = cJSON_Parse(tStr); //json根
-		m_chehao.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"ch")->valuestring)));
-		m_dianhua.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"dh")->valuestring));
-		m_shouhuo.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"dw")->valuestring)));
-		m_huowu.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"hw")->valuestring)));
-		m_guige.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"gg")->valuestring));
-		m_liuxiang.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"lx")->valuestring)));
-		m_chexing.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"cx")->valuestring)));
-		m_pizhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"pz")->valuestring));
-		m_maozhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"mz")->valuestring));
-		m_jingzhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"jz")->valuestring));
-		m_danjia.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"dj")->valuestring));
-		m_jine.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"je")->valuestring));
+		if(strcmp(tStr,"")==0) // 如果返回的数据为空
+		{
+			MessageBox(L"单号不存在!",L"数据库");
+			// 设置单号为焦点
+			m_id.SetFocus();
+			m_fangxing.EnableWindow(FALSE); // 禁用放行按钮
+		}
+		else
+		{
+			USES_CONVERSION;  // dali
+			cJSON *jsonroot = cJSON_Parse(tStr); //json根
+			m_chehao.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"ch")->valuestring))); // 车号
+			m_dianhua.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"dh")->valuestring)); // 电话
+			m_shouhuo.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"dw")->valuestring))); // 单位
+			m_huowu.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"hw")->valuestring))); // 货物
+			m_guige.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"gg")->valuestring)); // 规格
+			m_liuxiang.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"lx")->valuestring))); // 流向。这个可以删除
+			m_chexing.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"cx")->valuestring))); // 车型
+			m_pizhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"pz")->valuestring)); // 皮重
+			m_maozhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"mz")->valuestring)); // 毛重
+			m_jingzhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"jz")->valuestring)); // 净重
+			m_danjia.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"dj")->valuestring))); // 单价
+			m_jine.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"je")->valuestring))); // 金额
+		}
+		// 这里还应该有放行的标志，用于判断是否可以放行。
+		// 在服务端可以设置多少秒钟内多次放行同一个条形码。
 		
 	}
 	if(strcmp(lStr,"400")==0)
@@ -842,4 +858,52 @@ void CClientDlg::OnPost()
 	if(strcmp(lStr,"500")==0)
 		MessageBox(_T("服务器错误！！！"),_T("网络连接"));
 
+}
+
+void CClientDlg::OnFangXing()
+{
+	// 如果放行状态错误，则结束。
+
+	// 格式：地址(1字节) + 命令(1字节) + 长度(1字节) + 数据(n字节) + 校验(1字节)
+	//       地址：00h 广播地址		01h - 0Fh 设备地址
+	//       命令：
+	//            00h 查询状态(不可广播) 03000003 返回 03000003(未知)  0309000A(开)    030C000F(关)
+	//            01h 停止 05010004 返回 05010004
+	//            03h 开闸 05030006 返回 05030006 广播 00030003 无返回
+	//            05h 关闸 0905000C 返回 0905000C 广播 00050005 无返回
+	//            09h 查计数 0A090003 返回 0A0902030406 其中 0304为计数
+	//            0Fh 清计数 0F0F0000 返回 0F0F0000
+	//
+	//       长度：默认长度为0，仅查计数的返回值有长度为2
+	//       数据：默认不存在，仅查计数的返回值有2字节的数据。
+	//       校验：将前面的所有字节进行异或运算(XOR)。
+	//
+
+	// 需要设置开门信号的数据
+	char buf[64]={0};
+	buf[0] = 0x00; // 广播
+	buf[1] = 0x03; // 开闸
+	buf[2] = 0x00; // 长度
+	               // 数据
+	buf[3] = 0x03; // 校验
+	com1.write((char*)&buf,4); // 发送开门信号到串口1
+
+	// 清空文本框的数据，并将焦点设置在单号处。
+	m_id.SetWindowText(_T("")); // 单号
+	m_chehao.SetWindowText(_T("")); // 车号
+	m_dianhua.SetWindowText(_T("")); // 电话
+	m_shouhuo.SetWindowText(_T("")); // 收货单位
+	m_huowu.SetWindowText(_T("")); // 货物名称
+	m_guige.SetWindowText(_T("")); // 货物规格
+	m_liuxiang.SetWindowText(_T("")); // 货物流向
+	m_chexing.SetWindowText(_T("")); // 车型
+	m_pizhong.SetWindowText(_T("")); // 皮重
+	m_maozhong.SetWindowText(_T("")); // 毛重
+	m_jingzhong.SetWindowText(_T("")); // 净重
+	m_danjia.SetWindowText(_T("")); // 单价
+	m_jine.SetWindowText(_T("")); // 金额
+
+	// 设置单号为焦点
+	m_id.SetFocus();
+	m_fangxing.EnableWindow(FALSE); // 禁用放行按钮
 }
