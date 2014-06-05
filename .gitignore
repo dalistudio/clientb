@@ -1,0 +1,17 @@
+# git ignore file
+*.obj
+*.tlog
+*.log
+*.pch
+*.pdb
+*.exe
+*.ipch
+*.rar
+*.ilk
+*.suo
+*.sdf
+*.aps
+*.idc
+debug
+release
+*.opensdf
