@@ -377,35 +377,9 @@ LRESULT CClientDlg::On_Receive(WPARAM wp, LPARAM lp)
 	//       校验：将前面的所有字节进行异或运算(XOR)。
 	//
 
-	// 无需处理接受到的串口数据
+	// 无需处理接收到的串口数据
 
-/*
-	int len;
-	char str[100];
 
-//	if(wp==3)
-	{
-		len = com1.read(str, 100);
-		printf("COM1: %s\n",str);
-	}
-
-//	if(wp==9)
-//	{
-//		len = com2.read(str, 100);
-//		printf("COM2: %s\n",str);
-//	}
-	if(len > 0)
-	{
-		char com_str[10];
-		strcpy(com_str, "COM");
-		ltoa((long)wp, com_str + 3, 10); //	WPARAM 保存端口号
-		m_e += com_str;
-		m_e += " : ";
-		m_e += str;
-		m_e += "\r\n";
-		GetDlgItem(IDC_EDIT_INFO)->SetWindowText(m_e);
-	}
-*/
 	return 0;
 }
 
@@ -664,18 +638,33 @@ void CClientDlg::OnBnClickedButtonTijiao()
 	sprintf(str,"date=%4d%02d%02d&id=",st.wYear,st.wMonth,st.wDay); // 当前日期
 
 	CString strId;
-	m_id.GetWindowText(strId);
-	int i = _ttoi(strId);  
-	if(strId=="" || i==0)
+	m_id.GetWindowText(strId); // 获取单号
+	int i = _ttoi(strId); // 转换单号为数字类型
+	if(strId=="" || i==0) // 如果单号为空，或者等于0
 	{
 		MessageBox(_T("单号不能为空！！\n 或者全为：0"));
 		m_fangxing.EnableWindow(FALSE); // 放行按钮
 		return;
 	}
-	m_post_id = 3; // 提交ID为3
-	USES_CONVERSION; // dali
-	strcat(str,W2A(strId)); // 设置单号
-	GetData("/getid.php",str); // 提交放行请求
+	if(i<100000) // 单号小于10万，保留给内部使用
+	{
+		// 内部使用
+		// 这里不通过数据库，直接放行。
+		// 00000 - 99999
+		m_chehao.SetWindowText(_T("内部人员"));
+		m_chexing.SetWindowText(_T("内部人员"));
+		m_dianhua.SetWindowText(_T("内部人员"));
+		m_shouhuo.SetWindowText(_T("内部人员"));
+		m_huowu.SetWindowText(_T("内部人员"));
+		m_guige.SetWindowText(_T("内部人员"));
+	}
+	else if(i>=100000) // 正常交易的单号
+	{
+		m_post_id = 3; // 提交ID为3
+		USES_CONVERSION; // dali
+		strcat(str,W2A(strId)); // 设置单号
+		GetData("/getid.php",str); // 提交放行请求
+	}
 
 	// 判断状态和上次放行时间决定是否可放行
 	m_fangxing.EnableWindow(TRUE); // 开启放行按钮
@@ -836,18 +825,30 @@ void CClientDlg::OnPost()
 		{
 			USES_CONVERSION;  // dali
 			cJSON *jsonroot = cJSON_Parse(tStr); //json根
-			m_chehao.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"ch")->valuestring))); // 车号
-			m_dianhua.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"dh")->valuestring)); // 电话
-			m_shouhuo.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"dw")->valuestring))); // 单位
-			m_huowu.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"hw")->valuestring))); // 货物
-			m_guige.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"gg")->valuestring)); // 规格
-			m_liuxiang.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"lx")->valuestring))); // 流向。这个可以删除
-			m_chexing.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"cx")->valuestring))); // 车型
-			m_pizhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"pz")->valuestring)); // 皮重
-			m_maozhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"mz")->valuestring)); // 毛重
-			m_jingzhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"jz")->valuestring)); // 净重
-			m_danjia.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"dj")->valuestring))); // 单价
-			m_jine.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"je")->valuestring))); // 金额
+			char *ZhuangTai = cJSON_GetObjectItem(jsonroot,"zt")->valuestring;
+			if(strcmp(ZhuangTai,"1")==0) // 如果放行状态为1，这继续分析json，并放行。
+			{
+				m_chehao.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"ch")->valuestring))); // 车号
+				m_dianhua.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"dh")->valuestring)); // 电话
+				m_shouhuo.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"dw")->valuestring))); // 单位
+				m_huowu.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"hw")->valuestring))); // 货物
+				m_guige.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"gg")->valuestring)); // 规格
+				m_liuxiang.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"lx")->valuestring))); // 流向。这个可以删除
+				m_chexing.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"cx")->valuestring))); // 车型
+				m_pizhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"pz")->valuestring)); // 皮重
+				m_maozhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"mz")->valuestring)); // 毛重
+				m_jingzhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"jz")->valuestring)); // 净重
+				m_danjia.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"dj")->valuestring))); // 单价
+				m_jine.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"je")->valuestring))); // 金额
+			}
+			else
+			{
+				MessageBox(L"没有放行标志!",L"数据库");
+				// 设置单号为焦点
+				m_id.SetFocus();
+				m_fangxing.EnableWindow(FALSE); // 禁用放行按钮
+			}
+			
 		}
 		// 这里还应该有放行的标志，用于判断是否可以放行。
 		// 在服务端可以设置多少秒钟内多次放行同一个条形码。
