@@ -678,7 +678,18 @@ void CClientDlg::OnBnClickedButtonFangxing()
 	// 提交一个POST放行
 	// 需要提交门岗放行的状态，只需ID和保安用户名即可。
 	m_post_id = 4; // 提交ID为4
-	PostData("/post.php",""); // 提交id level status更新数据库即可
+//	PostData("/post.php",""); // 提交id level status更新数据库即可
+
+	USES_CONVERSION;
+	char str[1024]={0};
+	CString strDanHao;
+	m_id.GetWindowText(strDanHao); // 单号
+	sprintf(str,"DanHao=%s&ZhuangTai=8&",W2A(strDanHao)); // 单号和状态
+
+	CString strUser;
+	m_user.GetWindowText(strUser);
+	sprintf(str,"%sFangXingYuan=%s",str, W2A(strUser)); // 放行员
+	PostData("/post.php",str);
 }
 
 
@@ -826,6 +837,14 @@ void CClientDlg::OnPost()
 			USES_CONVERSION;  // dali
 			cJSON *jsonroot = cJSON_Parse(tStr); //json根
 			char *ZhuangTai = cJSON_GetObjectItem(jsonroot,"zt")->valuestring;
+			if(strcmp(ZhuangTai,"0")==0) 
+			{
+				MessageBox(L"不可放行，未第二次过磅！！！");
+				// 设置单号为焦点
+				m_id.SetFocus();
+				m_fangxing.EnableWindow(FALSE); // 禁用放行按钮
+			}
+
 			if(strcmp(ZhuangTai,"1")==0) // 如果放行状态为1，这继续分析json，并放行。
 			{
 				m_chehao.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"ch")->valuestring))); // 车号
@@ -841,9 +860,12 @@ void CClientDlg::OnPost()
 				m_danjia.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"dj")->valuestring))); // 单价
 				m_jine.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"je")->valuestring))); // 金额
 			}
-			else
+
+			if(strcmp(ZhuangTai,"2")==0) 
 			{
-				MessageBox(L"没有放行标志!",L"数据库");
+				MessageBox(L"已经放行出场，不可再次放行！！！");
+				m_id.SetWindowText(L"");
+
 				// 设置单号为焦点
 				m_id.SetFocus();
 				m_fangxing.EnableWindow(FALSE); // 禁用放行按钮

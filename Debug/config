@@ -7,9 +7,5 @@
     "com1": {
         "port":2,
         "para":"baud=9600 parity=N data=8 stop=1"
-    },
-    "com2": {
-        "port":1,
-        "para":"baud=9600 parity=N data=8 stop=1"
     }
 }
