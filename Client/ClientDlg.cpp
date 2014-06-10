@@ -64,7 +64,6 @@ void CClientDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_EDIT_IP, m_ip);
 	DDX_Control(pDX, IDC_EDIT_PORT, m_port);
 	DDX_Control(pDX, IDC_EDIT_COM1, m_com1);
-	DDX_Control(pDX, IDC_EDIT_COM2, m_com2);
 	DDX_Control(pDX, IDC_BUTTON_NET_CONN, m_btn_net);
 	DDX_Control(pDX, IDC_EDIT_USER, m_user);
 	DDX_Control(pDX, IDC_EDIT_PWD, m_pwd);
@@ -75,7 +74,6 @@ void CClientDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_EDIT_SHOUHUO, m_shouhuo);
 	DDX_Control(pDX, IDC_EDIT_HUOWU, m_huowu);
 	DDX_Control(pDX, IDC_EDIT_GUIGE, m_guige);
-	DDX_Control(pDX, IDC_EDIT_LIUXIANG, m_liuxiang);
 	DDX_Control(pDX, IDC_EDIT_CHEXING, m_chexing);
 	DDX_Control(pDX, IDC_EDIT_PIZHONG, m_pizhong);
 	DDX_Control(pDX, IDC_EDIT_MAOZHONG, m_maozhong);
@@ -91,8 +89,6 @@ BEGIN_MESSAGE_MAP(CClientDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 
 	ON_MESSAGE(ON_COM_RECEIVE, On_Receive) // 如果收到串口 ON_COM_RECEIVE 消息，调用接收函数
-	ON_BN_CLICKED(IDC_BUTTON_COM1_SEND, &CClientDlg::OnBnClickedButtonCom1Send)
-	ON_BN_CLICKED(IDC_BUTTON_COM2_SEND, &CClientDlg::OnBnClickedButtonCom2Send)
 	ON_BN_CLICKED(IDC_BUTTON_NET_CONN, &CClientDlg::OnBnClickedButtonNetConn)
 	ON_BN_CLICKED(IDC_BUTTON_LOGIN, &CClientDlg::OnBnClickedButtonLogin)
 	ON_BN_CLICKED(IDC_BUTTON_LOGOUT, &CClientDlg::OnBnClickedButtonLogout)
@@ -162,9 +158,7 @@ BOOL CClientDlg::OnInitDialog()
 	conf.port = 80;
 	conf.com1_id=1;
 	strcpy(conf.com1_para,"baud=9600 parity=N data=8 stop=1");
-//	conf.com2_id=2;
-//	strcpy(conf.com2_para,"baud=9600 parity=N data=8 stop=1");
-//	strcpy(conf.cookie,"");
+	strcpy(conf.cookie,"");
 
 	// 打开配置文件 JSON 格式
 	FILE *f=fopen("config","rb"); // 配置文件 config
@@ -190,10 +184,6 @@ BOOL CClientDlg::OnInitDialog()
 		cJSON *jsonCOM1=cJSON_GetObjectItem(jsonroot,"com1");//取 COM1
 		conf.com1_id = cJSON_GetObjectItem(jsonCOM1,"port")->valueint; // 获得COM端口
 		strcpy(conf.com1_para,cJSON_GetObjectItem(jsonCOM1,"para")->valuestring); // 获得COM的属性
-
-//		cJSON *jsonCOM2=cJSON_GetObjectItem(jsonroot,"com1");//取 COM1
-//		conf.com2_id = cJSON_GetObjectItem(jsonCOM2,"port")->valueint; // 获得COM端口
-//		strcpy(conf.com2_para,cJSON_GetObjectItem(jsonCOM2,"para")->valuestring); // 获得COM的属性
 	}
 	
 
@@ -226,9 +216,6 @@ BOOL CClientDlg::OnInitDialog()
 		FF_SWISS,				// 字符间距和字体族
 		_T("隶书"));				// 字体名称
 
-	// 公司LOGO
-	GetDlgItem(IDC_STATIC_LOGO)->SetFont(m_Font);
-
 	// 标题
 	USES_CONVERSION;  // dali
 	GetDlgItem(IDC_EDIT_TITLE)->SetWindowText(A2CW(conf.title));
@@ -259,10 +246,6 @@ BOOL CClientDlg::OnInitDialog()
 	// 收货单位
 	GetDlgItem(IDC_STATIC_SHOUHUO)->SetFont(m_Font);
 	GetDlgItem(IDC_EDIT_SHOUHUO)->SetFont(m_Font);
-
-	// 货物流向
-	GetDlgItem(IDC_STATIC_LIUXIANG)->SetFont(m_Font);
-	GetDlgItem(IDC_EDIT_LIUXIANG)->SetFont(m_Font);
 
 
 	////////////////////////////////
@@ -420,8 +403,6 @@ void CClientDlg::OnRvc()
 	if (SOCKET_ERROR != m_net_rvc_len)
 	{
 		printf("%s\n",m_net_rvc_data);
-		USES_CONVERSION;  // dali
-		GetDlgItem(IDC_EDIT_INFO)->SetWindowText(A2CW(m_net_rvc_data));
 		switch(m_post_id)
 		{
 		case 1:
@@ -726,19 +707,6 @@ void CClientDlg::OnBnClickedButtonComConn()
 		USES_CONVERSION;  // dali
 		m_com1.SetWindowText(A2CW(tmp)); // 设置串口1框的值
 	}
-
-//	if(!com2.open(conf.com2_id,conf.com2_para)) // 打开串口2
-//	{
-//		m_com2.SetWindowText(_T("打开失败"));
-//	}
-//	else
-//	{
-//		com2.set_hwnd(m_hWnd);
-//		char tmp[64] = {0};
-//		sprintf(tmp,"COM%d,%s",conf.com2_id,conf.com2_para);
-//		USES_CONVERSION;  // dali
-//		m_com2.SetWindowText(A2CW(tmp)); // 设置串口2框的值
-//	}
 }
 
 // 保持连接
@@ -852,7 +820,6 @@ void CClientDlg::OnPost()
 				m_shouhuo.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"dw")->valuestring))); // 单位
 				m_huowu.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"hw")->valuestring))); // 货物
 				m_guige.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"gg")->valuestring)); // 规格
-				m_liuxiang.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"lx")->valuestring))); // 流向。这个可以删除
 				m_chexing.SetWindowText(A2CW(UTF8ToEncode(cJSON_GetObjectItem(jsonroot,"cx")->valuestring))); // 车型
 				m_pizhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"pz")->valuestring)); // 皮重
 				m_maozhong.SetWindowText(A2CW(cJSON_GetObjectItem(jsonroot,"mz")->valuestring)); // 毛重
@@ -918,7 +885,6 @@ void CClientDlg::OnFangXing()
 	m_shouhuo.SetWindowText(_T("")); // 收货单位
 	m_huowu.SetWindowText(_T("")); // 货物名称
 	m_guige.SetWindowText(_T("")); // 货物规格
-	m_liuxiang.SetWindowText(_T("")); // 货物流向
 	m_chexing.SetWindowText(_T("")); // 车型
 	m_pizhong.SetWindowText(_T("")); // 皮重
 	m_maozhong.SetWindowText(_T("")); // 毛重
