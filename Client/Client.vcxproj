@@ -14,6 +14,7 @@
     <ProjectGuid>{E6B59D47-98F1-448C-8DB4-1BCD0D774777}</ProjectGuid>
     <RootNamespace>Client</RootNamespace>
     <Keyword>MFCProj</Keyword>
+    <ProjectName>ClientB</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
