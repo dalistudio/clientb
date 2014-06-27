@@ -16,7 +16,7 @@ typedef struct TOKEN{
 	char *data; 
 	size_t len; 
 	char *ptr;  
-	char str[256];
+	char str[10240];
 }TOKEN_T;
 
 struct TOKEN * strinit();

@@ -42,7 +42,7 @@ public:
 	CONF conf;
 	int len;
 	int m_post_id; // 提交的编号，用于区分不同提交。
-	char m_net_rvc_data[1025]; // 接收到的数据
+	char m_net_rvc_data[10240]; // 接收到的数据
 	int m_net_rvc_len; // 接收到的数据长度
 
 // 实现

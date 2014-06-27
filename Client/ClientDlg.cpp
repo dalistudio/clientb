@@ -398,8 +398,8 @@ void CClientDlg::OnRvc()
 	//m_post_id = 2 为用户登录请求
 	//m_post_id = 3 为提交单据请求
 
-	memset(&m_net_rvc_data,0,1025);
-	m_net_rvc_len = m_Conn.Receive(m_net_rvc_data,1024);
+	memset(&m_net_rvc_data,0,10240);
+	m_net_rvc_len = m_Conn.Receive(m_net_rvc_data,10239);
 	if (SOCKET_ERROR != m_net_rvc_len)
 	{
 		printf("%s\n",m_net_rvc_data);
@@ -440,7 +440,7 @@ void CClientDlg::GetData(char *url, char *para)
 	char Data[1024] = {0};
 	strcat(Data,"GET ");
 	strcat(Data,url);
-	strcat(Data,"?"); // 注意这里，应该先判断para是否为空
+	strcat(Data,"?");
 	strcat(Data,para);
 	strcat(Data," HTTP/1.1\r\n");
 	strcat(Data,"Host: ");
@@ -457,8 +457,33 @@ void CClientDlg::GetData(char *url, char *para)
 		strcat(Data,"\r\n");
 	}
 	strcat(Data,"\r\n");
-	m_Conn.Send(Data,strlen(Data));
-	printf("%s\n",Data);
+
+	if(m_Conn.Send(Data,strlen(Data))==SOCKET_ERROR) // 如果发送返回-1，表示错误
+	{
+		DWORD err = GetLastError();
+		switch(err)
+		{
+		case WSAEWOULDBLOCK: 
+			// 不处理
+			break;
+		case WSAENOTCONN: // 不能连接
+			OnClose(); // 关闭连接
+			printf("无法连接服务器。\n");
+//			OnBnClickedButtonNetConn(); // 重新连接
+			break;
+		case WSAENOTSOCK: // 未创建Socket
+//			OnClose(); // 关闭连接
+			printf("未创建Socket。\n");
+			OnBnClickedButtonNetConn(); // 重新连接
+			break;
+//		default:
+			
+		};
+	}
+	else
+	{
+		printf("%s\n",Data);
+	}
 }
 
 void CClientDlg::PostData(char *url, char *para)
@@ -830,14 +855,54 @@ void CClientDlg::OnPost()
 
 			if(strcmp(ZhuangTai,"2")==0) 
 			{
-				MessageBox(L"已经放行出场，不可再次放行！！！");
-				m_id.SetWindowText(L"");
+				// 获取出场时间
+				char *strChuChang = new char[32];
+				memset(strChuChang,0,32);
+				strChuChang = cJSON_GetObjectItem(jsonroot,"cc")->valuestring; // 出场时间
+				if(strcmp(strChuChang,"")==0)
+				{
+					MessageBox(L"已经放行出场，不可再次放行！！！");
+				}
+				else
+				{
+					// 将时间字符串转成整数
+					// 判断在5分钟内，则可再放行。
+					CString stime = A2CW(strChuChang); 
+					COleDateTime CurrTime = COleDateTime::GetCurrentTime(); 
+					COleDateTime   tempTime; 
+					tempTime.ParseDateTime(stime); 
+					COleDateTimeSpan  result = CurrTime - tempTime; 
+					double sec = result.GetTotalSeconds();
+					if(sec<=5*60)
+					{
+						OnFangXing(); // 放行
+					}
+					else
+					{
+						MessageBox(L"超出放行时间，不可放行！！！");
+					}
+				}
+				
+
+				// 清空文本框的数据，并将焦点设置在单号处。
+				m_id.SetWindowText(_T("")); // 单号
+				m_chehao.SetWindowText(_T("")); // 车号
+				m_dianhua.SetWindowText(_T("")); // 电话
+				m_shouhuo.SetWindowText(_T("")); // 收货单位
+				m_huowu.SetWindowText(_T("")); // 货物名称
+				m_guige.SetWindowText(_T("")); // 货物规格
+				m_chexing.SetWindowText(_T("")); // 车型
+				m_pizhong.SetWindowText(_T("")); // 皮重
+				m_maozhong.SetWindowText(_T("")); // 毛重
+				m_jingzhong.SetWindowText(_T("")); // 净重
+				m_danjia.SetWindowText(_T("")); // 单价
+				m_jine.SetWindowText(_T("")); // 金额
 
 				// 设置单号为焦点
 				m_id.SetFocus();
 				m_fangxing.EnableWindow(FALSE); // 禁用放行按钮
+				delete[] strChuChang;
 			}
-			
 		}
 		// 这里还应该有放行的标志，用于判断是否可以放行。
 		// 在服务端可以设置多少秒钟内多次放行同一个条形码。
