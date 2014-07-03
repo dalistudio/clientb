@@ -504,14 +504,22 @@ void CClientDlg::OnBnClickedButtonTijiao()
 		// 内部使用
 		// 这里不通过数据库，直接放行。
 		// 00000 - 99999
-		m_chehao.SetWindowText(_T("内部人员"));
-		m_chexing.SetWindowText(_T("内部人员"));
-		m_dianhua.SetWindowText(_T("内部人员"));
-		m_shouhuo.SetWindowText(_T("内部人员"));
-		m_huowu.SetWindowText(_T("内部人员"));
-		m_guige.SetWindowText(_T("内部人员"));
-		OnFangXing(); // 直接放行
-		MessageBox(L"放行成功！");
+		USES_CONVERSION;
+		char url[256]={0};
+		strcat_s(url,"http://");
+		strcat_s(url,conf.ip);
+		strcat_s(url,"/");
+		strcat_s(url,"card.php");
+		strcat_s(url,"?");
+		strcat_s(url,"id=");
+		strcat_s(url,W2A(strDanHao)); // 单号
+
+		CURLcode res;
+	
+		curl_easy_setopt(curl,CURLOPT_URL,url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, card_data);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
+		res = curl_easy_perform(curl);
 	}
 	else if(i>=100000) // 正常交易的单号
 	{
@@ -751,6 +759,65 @@ size_t CClientDlg::post_data(void *ptr, size_t size, size_t nmemb, void *userp)
 	{
 		client->OnFangXing(); // 放行
 		client->MessageBox(L"放行成功！");
+	}
+	return size*nmemb;
+}
+
+// 门禁卡返回数据
+size_t CClientDlg::card_data(void *ptr, size_t size, size_t nmemb, void *userp)
+{
+	CClientDlg *client =(CClientDlg*)userp;
+
+	USES_CONVERSION; 
+	cJSON *jsonroot = cJSON_Parse((const char*)ptr); //json根
+	if(jsonroot)
+	{
+		cJSON* node;
+		int size = cJSON_GetArraySize(jsonroot); // 获得数组的长度
+		
+		if(size==1)
+		{
+			node = cJSON_GetArrayItem(jsonroot,0);
+			char * strKaHao2 = node->valuestring; // 卡号
+			if(strcmp(strKaHao2,"0")==0)
+			{
+				client->MessageBox(L"卡号不存在，禁止放行！！！");
+				return size*nmemb;
+			}
+		}
+		
+		if(size==5)
+		{
+			CString strKaHao;
+			client->m_id.GetWindowText(strKaHao); // 获得输入的单号，即卡号
+			char * strKaHao1 = W2A(strKaHao);
+
+			node = cJSON_GetArrayItem(jsonroot,0);
+			char * strKaHao2 = node->valuestring; // 卡号
+
+			if(strcmp(strKaHao1,strKaHao2)==0)
+			{
+				node = cJSON_GetArrayItem(jsonroot,1);
+				client->m_chehao.SetWindowText(A2CW(UTF8ToEncode(node->valuestring))); // 车号
+
+				node = cJSON_GetArrayItem(jsonroot,2);
+				client->m_chexing.SetWindowText(A2CW(UTF8ToEncode(node->valuestring))); // 车型
+
+				node = cJSON_GetArrayItem(jsonroot,3);
+				client->m_dianhua.SetWindowText(A2CW(UTF8ToEncode(node->valuestring))); // 电话
+
+				node = cJSON_GetArrayItem(jsonroot,4);
+				client->m_shouhuo.SetWindowText(A2CW(UTF8ToEncode(node->valuestring))); // 单位
+
+				client->m_fangxing.EnableWindow(TRUE); // 启用放行按钮
+			}
+			else
+			{
+				return size*nmemb;
+			}
+			
+		}
+		cJSON_Delete(jsonroot);
 	}
 	return size*nmemb;
 }

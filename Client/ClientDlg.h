@@ -82,4 +82,5 @@ public:
 	static size_t login_data(void *ptr, size_t size, size_t nmemb, void *userp); // 登陆返回数据
 	static size_t getid_data(void *ptr, size_t size, size_t nmemb, void *userp); // 获得单号返回数据
 	static size_t post_data(void *ptr, size_t size, size_t nmemb, void *userp); // 提交数据返回数据
+	static size_t card_data(void *ptr, size_t size, size_t nmemb, void *userp); // 门禁卡返回数据
 };
