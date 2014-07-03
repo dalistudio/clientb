@@ -6,7 +6,7 @@
 #include "afxwin.h"
 #include "Com_class.h"
 #include "io.h"
-#include "MySock.h"
+#include "../curl/include/curl/curl.h"
 
 // CClientDlg 对话框
 class CClientDlg : public CDialogEx
@@ -15,11 +15,6 @@ class CClientDlg : public CDialogEx
 public:
 	CClientDlg(CWnd* pParent = NULL);	// 标准构造函数
 	LRESULT On_Receive(WPARAM wp, LPARAM lp); // 接收串口的消息，并处理
-
-	void OnConnected(); // 连接Socket服务器
-	void OnRvc(); // 接收 Socket 数据
-	void OnClose(); // 关闭 Socket 连接
-	CMySock m_Conn; // 
 
 // 对话框数据
 	enum { IDD = IDD_CLIENT_DIALOG };
@@ -33,24 +28,14 @@ public:
 		short port; // 端口
 		short com1_id; // 串口1的编号
 		char com1_para[64]; // 串口1的参数
-		short com2_id; // 串口2的编号
-		char com2_para[64]; // 串口2的参数
-		char cookie[256]; // Cookie
-		char sid[256]; // 会话ID 
-		char aid[256]; // 身份ID
 	};
 	CONF conf;
-	int len;
-	int m_post_id; // 提交的编号，用于区分不同提交。
-	char m_net_rvc_data[10240]; // 接收到的数据
-	int m_net_rvc_len; // 接收到的数据长度
+	int m_isLogin; // 是否登陆
 
 // 实现
 protected:
 	HICON m_hIcon;
 	_thread_com com1; // 创建串口1
-	_thread_com com2; // 创建串口2
-	CString	m_e;
 
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
@@ -61,18 +46,11 @@ protected:
 public:
 	afx_msg void OnCbnSelchangeComboHuowu();
 	afx_msg void OnBnClickedButtonCom();
-	afx_msg void OnBnClickedButtonCom1Send();
-	afx_msg void OnBnClickedButtonCom2Send();
 
-	void GetData(char *url, char *para);
-	void PostData(char *url, char *para);
 	CEdit m_ip;
 	CEdit m_port;
 	CEdit m_com1;
-	CEdit m_com2;
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
-	CButton m_btn_net;
-	afx_msg void OnBnClickedButtonNetConn();
 	afx_msg void OnBnClickedButtonLogin();
 	afx_msg void OnBnClickedButtonLogout();
 	CEdit m_user;
@@ -97,8 +75,11 @@ public:
 	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 	afx_msg void OnBnClickedButtonComConn();
 	CButton m_btn_login;
-	void OnKeepalive(); // 保持连接
-	void OnLogin(); // 用户登录
-	void OnPost(); // 提交单据
 	void OnFangXing(); // 放行处理
+
+	// CURL 
+	CURL *curl;
+	static size_t login_data(void *ptr, size_t size, size_t nmemb, void *userp); // 登陆返回数据
+	static size_t getid_data(void *ptr, size_t size, size_t nmemb, void *userp); // 获得单号返回数据
+	static size_t post_data(void *ptr, size_t size, size_t nmemb, void *userp); // 提交数据返回数据
 };

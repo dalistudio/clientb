@@ -82,8 +82,8 @@ public:
 			cf.wVersion = 1;
 
 			char com_str[10];
-			strcpy(com_str, "COM");
-			ltoa(_port, com_str + 3, 10);
+			strcpy_s(com_str, "COM");
+			_ltoa_s(_port, com_str + 3,5, 10);
 			
 			USES_CONVERSION;  // dali
 			if(CommConfigDialog(A2CW(com_str), NULL, &cf))
@@ -182,8 +182,8 @@ protected:
 
 		char com_str[10];
 		
-		strcpy(com_str, "COM");
-		ltoa(_port, com_str + 3, 10);
+		strcpy_s(com_str, "COM");
+		_ltoa_s(_port, com_str + 3,5, 10);
 		USES_CONVERSION;  // dali
 		_com_handle = CreateFile(
 			A2CW(com_str),
@@ -296,8 +296,8 @@ protected:
 
 		char com_str[10];
 
-		strcpy(com_str, "COM");
-		ltoa(_port, com_str + 3, 10);
+		strcpy_s(com_str, "COM");
+		_ltoa_s(_port, com_str + 3,5, 10);
 		USES_CONVERSION;  // dali
 		_com_handle = CreateFile(
 			A2CW(com_str),
@@ -559,7 +559,7 @@ private:
 			if(mask & EV_RXCHAR) // == EV_RXCHAR
 			{
 				ClearCommError(pcom->_com_handle, &error, &stat);
-				if(stat.cbInQue > pcom->_notify_num)
+				if(stat.cbInQue >(DWORD) pcom->_notify_num)
 					pcom->on_receive();
 			}
         }
