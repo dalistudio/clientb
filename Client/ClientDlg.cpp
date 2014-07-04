@@ -174,15 +174,20 @@ BOOL CClientDlg::OnInitDialog()
 		fread(data,1,len,f); // 读取文件数据
 		fclose(f); // 关闭文件
 		cJSON *jsonroot = cJSON_Parse(data); //json根
-		strcpy_s(conf.title,cJSON_GetObjectItem(jsonroot,"title")->valuestring); // 获得标题
+		if(jsonroot)
+		{
+			strcpy_s(conf.title,cJSON_GetObjectItem(jsonroot,"title")->valuestring); // 获得标题
 
-		cJSON *jsonServer=cJSON_GetObjectItem(jsonroot,"server");//取 Server
-		strcpy_s(conf.ip,cJSON_GetObjectItem(jsonServer,"ip")->valuestring); // 获得IP地址
-		conf.port = cJSON_GetObjectItem(jsonServer,"port")->valueint; // 获得端口
+			cJSON *jsonServer=cJSON_GetObjectItem(jsonroot,"server");//取 Server
+			strcpy_s(conf.ip,cJSON_GetObjectItem(jsonServer,"ip")->valuestring); // 获得IP地址
+			conf.port = cJSON_GetObjectItem(jsonServer,"port")->valueint; // 获得端口
 
-		cJSON *jsonCOM1=cJSON_GetObjectItem(jsonroot,"com1");//取 COM1
-		conf.com1_id = cJSON_GetObjectItem(jsonCOM1,"port")->valueint; // 获得COM端口
-		strcpy_s(conf.com1_para,cJSON_GetObjectItem(jsonCOM1,"para")->valuestring); // 获得COM的属性
+			cJSON *jsonCOM1=cJSON_GetObjectItem(jsonroot,"com1");//取 COM1
+			conf.com1_id = cJSON_GetObjectItem(jsonCOM1,"port")->valueint; // 获得COM端口
+			strcpy_s(conf.com1_para,cJSON_GetObjectItem(jsonCOM1,"para")->valuestring); // 获得COM的属性
+
+			cJSON_Delete(jsonroot); // 释放cJSON
+		}
 	}
 	
 	USES_CONVERSION;
@@ -469,6 +474,7 @@ void CClientDlg::OnBnClickedButtonLogout()
 	m_pwd.SetWindowText(_T("")); // 设置密码框为空
 	m_pwd.EnableWindow(TRUE); // 设置密码框为可读写
 
+	m_id.EnableWindow(FALSE); // 设置单号框为禁止使用
 	m_btn_login.EnableWindow(TRUE); // 设置登陆按钮为可操作
 }
 
@@ -509,7 +515,7 @@ void CClientDlg::OnBnClickedButtonTijiao()
 		strcat_s(url,"http://");
 		strcat_s(url,conf.ip);
 		strcat_s(url,"/");
-		strcat_s(url,"card.php");
+		strcat_s(url,"card.php"); // 门禁卡处理文件
 		strcat_s(url,"?");
 		strcat_s(url,"id=");
 		strcat_s(url,W2A(strDanHao)); // 单号
@@ -713,9 +719,9 @@ size_t CClientDlg::getid_data(void *ptr, size_t size, size_t nmemb, void *userp)
 		if(strcmp(ZhuangTai,"2")==0) 
 		{
 			// 获取出场时间
-			char *strChuChang = new char[32];
-			memset(strChuChang,0,32);
-			strChuChang = cJSON_GetObjectItem(jsonroot,"cc")->valuestring; // 出场时间
+			char strChuChang[32]={0};
+			memcpy(strChuChang,cJSON_GetObjectItem(jsonroot,"cc")->valuestring,20); // 出场时间
+
 			if(strcmp(strChuChang,"")==0)
 			{
 				client->MessageBox(L"已经放行出场，不可再次放行！！！");
@@ -728,8 +734,8 @@ size_t CClientDlg::getid_data(void *ptr, size_t size, size_t nmemb, void *userp)
 				COleDateTime CurrTime = COleDateTime::GetCurrentTime(); 
 				COleDateTime tempTime; 
 				tempTime.ParseDateTime(stime); 
-				COleDateTimeSpan  result = CurrTime - tempTime; 
-				double sec = result.GetTotalSeconds();
+				COleDateTimeSpan  result = CurrTime - tempTime; // 计算出场时间差
+				double sec = result.GetTotalSeconds(); // 等到相差的秒钟数
 				if(sec<=5*60) // 5分钟
 				{
 					client->OnFangXing(); // 放行
@@ -739,11 +745,10 @@ size_t CClientDlg::getid_data(void *ptr, size_t size, size_t nmemb, void *userp)
 				{
 					client->MessageBox(L"超出放行时间，不可放行！！！");
 				}
-				delete[] strChuChang;
 			}
 		}
+		cJSON_Delete(jsonroot); // 释放cJSON
 	}
-//	cJSON_Delete(jsonroot);
 	return size*nmemb;
 }
 
