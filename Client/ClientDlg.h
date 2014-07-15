@@ -53,7 +53,7 @@ public:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnBnClickedButtonLogin();
 	afx_msg void OnBnClickedButtonLogout();
-	CEdit m_user;
+	CComboBox m_user;
 	CEdit m_pwd;
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnBnClickedButtonTijiao();
@@ -76,6 +76,7 @@ public:
 	afx_msg void OnBnClickedButtonComConn();
 	CButton m_btn_login;
 	void OnFangXing(); // 放行处理
+	CList<CString,CString> m_UserList; // 用户名列表
 
 	// CURL 
 	CURL *curl;

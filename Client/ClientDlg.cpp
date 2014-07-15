@@ -191,6 +191,30 @@ BOOL CClientDlg::OnInitDialog()
 	}
 	
 	USES_CONVERSION;
+	// 打开用户名文件
+	fopen_s(&f,"user.dat","rt"); // 只读
+	if(f!=NULL)
+	{
+		m_user.ResetContent();
+		while(!feof(f)) // 是否到文件尾
+		{
+			char user[32] = {0};
+			fgets(user,16,f); // 按行读取用户名
+			for (int i = 0; user[i]; i++) // 消除字符串后面的回车换行符号
+			{
+				if (user[i] == '\n' || user[i] == '\r') 
+				{
+					user[i] = 0;
+					break;
+				}
+			}
+			m_user.AddString(A2W(user)); // 将用户名加入用户列表
+			m_UserList.AddTail(A2W(user)); // 添加用户名的链表中
+		}
+		m_user.SetCurSel(0); // 选择第一项作为默认选择
+		fclose(f); // 关闭文件
+	} // 剩下的处理在登陆成功后
+
 	// 显示网络服务器的IP地址和端口
 	m_ip.SetWindowText(A2CW(conf.ip));
 	char port[8] = {0};
@@ -460,6 +484,33 @@ void CClientDlg::OnBnClickedButtonLogin()
 	else
 	{
 		m_isLogin = 1;
+
+		// 处理用户名文件 user.dat
+		FILE *f;
+		fopen_s(&f,"user.dat","wt");
+		if(f!=NULL)
+		{
+			POSITION pos = m_UserList.GetHeadPosition(); // 获得链表的头位置
+			CString strUser1,strUser2;
+			m_user.GetWindowText(strUser1);
+			m_UserList.AddTail(strUser1); // 添加到链表尾
+			char *str = W2A(strUser1); // 转换格式
+			fputs(str,f); // 写入一行文本
+			fputs("\n",f); // 写入回车换行
+			while(pos != NULL) // 循环用户名链表
+			{
+				strUser2 = m_UserList.GetNext(pos); // 获得链表的内容
+				if(strUser1.Compare(strUser2)!=0) // 比较登陆的用户是否等于链表中的用户
+				{
+					if(strUser2.Compare(L"")==0) break;
+					m_UserList.AddTail(strUser1); // 不在链表中则添加到链表尾
+					str = W2A(strUser2);
+					fputs(str,f); // 写入一行文本
+					fputs("\n",f); // 写入回车换行
+				}
+			}
+			fclose(f); // 关闭文件
+		}
 	}
 }
 

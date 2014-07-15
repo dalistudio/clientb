@@ -1,11 +1,11 @@
 {
     "title": "海南港口文峰石场",
     "server": {
-        "ip":"127.0.0.1",
+        "ip":"192.168.1.5",
         "port":80
     },
     "com1": {
-        "port":3,
+        "port":4,
         "para":"baud=9600 parity=N data=8 stop=1"
     }
 }
