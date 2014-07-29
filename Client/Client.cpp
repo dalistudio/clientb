@@ -43,8 +43,8 @@ BOOL CClientApp::InitInstance()
 	wnd=::FindWindow(NULL,_T("门岗客户端"));
 	if(wnd)
 	{
-		MessageBox(NULL,_T("已经运行！！！"),_T("地磅客户端"),0);
-		SendMessage(wnd,WM_CLOSE,0,0);
+		MessageBox(NULL,_T("已经运行！！！"),_T("门岗客户端"),0);
+		SendMessage(AfxGetMainWnd()->m_hWnd,WM_CLOSE,0,0);
 	}
 	// 如果一个运行在 Windows XP 上的应用程序清单指定要
 	// 使用 ComCtl32.dll 版本 6 或更高版本来启用可视化方式，

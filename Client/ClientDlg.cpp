@@ -811,7 +811,7 @@ size_t CClientDlg::post_data(void *ptr, size_t size, size_t nmemb, void *userp)
 	char str[16]={0};
 	memcpy(str,ptr,5);
 	// 这里判断提交是否成功
-	if(strcmp(str,"post3")==0)
+	if(strcmp(str,"post8")==0)
 	{
 		client->OnFangXing(); // 放行
 		client->MessageBox(L"放行成功！");
