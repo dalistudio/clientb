@@ -108,6 +108,7 @@
     <None Include="ReadMe.txt" />
     <None Include="res\Client.ico" />
     <None Include="res\Client.rc2" />
+    <None Include="历史.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Client.h" />
